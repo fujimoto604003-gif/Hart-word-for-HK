@@ -2,17 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Heart Words</title>
-  
-  <!-- スマホアプリ化（フルスクリーン）のための設定 -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Heart Words" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#FFF5F8" />
-  <!-- ホーム画面に追加した時のアイコン（ダミーの可愛いアイコンを指定） -->
-  <link rel="apple-touch-icon" href="https://api.dicebear.com/7.x/shapes/svg?seed=HeartWords&backgroundColor=FF6B9D" />
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -44,8 +35,6 @@
       background: var(--color-bg-custom);
       min-height: 100vh;
       overflow-x: hidden;
-      overscroll-behavior-y: none; /* スクロール時のバウンド（引っ張り）を防止 */
-      -webkit-tap-highlight-color: transparent; /* タップ時の青いハイライトを消す */
     }
 
     .bg-gradients::before {
@@ -138,4 +127,476 @@
       "eight":"I have eight crayons.","find":"I find the key!","five":"Five little ducks.","for":"A hug for you!",
       "four":"Four green frogs.","funny":"That is so funny!","go":"Go, go, go!","green":"Grass is green!",
       "have":"I have a dog!","he":"He can run fast.","help":"I help my mom.","here":"Come here, please!",
-      "I":"I love to read!","in":"I
+      "I":"I love to read!","in":"I am in here.","is":"It is so fun!","it":"It is a cat!",
+      "jump":"I can jump up!","like":"I like ice cream!","little":"A little yellow bird.","look":"Look at me!",
+      "make":"I can make it!","me":"Play with me!","my":"This is my book.","nine":"I have nine stars.",
+      "not":"I do not see it.","of":"A cup of milk.","on":"Sit on the mat.","one":"One big red ball.",
+      "orange":"An orange cat naps.","pink":"A pink flower blooms.","play":"Let us play outside!","pretty":"So pretty and pink!",
+      "purple":"I love purple grapes.","red":"A big red apple.","run":"Run, run, run fast!","said":"She said hello!",
+      "see":"I see the moon!","seven":"Seven happy fish.","she":"She can sing well.","six":"Six silly monkeys.",
+      "ten":"I count to ten!","that":"That dog is big.","the":"The sun is up!","this":"This is so fun!",
+      "three":"Three little pigs.","to":"Go to school now.","two":"Two blue balloons.","up":"Up in the sky!",
+      "we":"We love to play!","went":"We went to school.","what":"What do you see?","where":"Where is my cat?",
+      "white":"White snow falls down.","will":"I will help you!","yellow":"A yellow duck swims.","you":"I love you!"
+    };
+
+    const EMOJIS = {
+      "all":"🌟","am":"😊","and":"🤝","are":"👫","at":"👀","away":"🏃","be":"💫","big":"🦁",
+      "black":"🐈⬛","blue":"💙","brown":"🐻","but":"🤔","can":"💪","come":"🙌","do":"✅","down":"⬇️",
+      "eight":"8️⃣","find":"🔍","five":"🖐️","for":"🎁","four":"4️⃣","funny":"😄","go":"🚀","green":"🌿",
+      "have":"🎒","he":"👦","help":"🤗","here":"📍","I":"🙋","in":"📦","is":"⭐","it":"🌈",
+      "jump":"🐸","like":"❤️","little":"🐣","look":"👁️","make":"🎨","me":"😁","my":"💝","nine":"9️⃣",
+      "not":"🙅","of":"☕","on":"🪑","one":"1️⃣","orange":"🍊","pink":"🌸","play":"🎮","pretty":"🌺",
+      "purple":"🍇","red":"🍎","run":"🏃‍♀️","said":"💬","see":"👀","seven":"7️⃣","she":"👧","six":"6️⃣",
+      "ten":"🔢","that":"💡","the":"📖","this":"✨","three":"3️⃣","to":"➡️","two":"2️⃣","up":"⬆️",
+      "we":"👨‍👩‍👧","went":"🚶","what":"❓","where":"🗺️","white":"⬜","will":"🔮","yellow":"🌻","you":"🫵"
+    };
+
+    const COLORS = ['#FF6B9D','#FFB347','#56CCF2','#6BCB77','#A78BFA','#FF8C69','#4FC3F7'];
+
+    function App() {
+      const [flashOrder, setFlashOrder] = useState(() => {
+        const saved = localStorage.getItem('flashOrder');
+        if (saved) {
+          try { return JSON.parse(saved); } catch (e) {}
+        }
+        return [...WORDS].sort(() => Math.random() - 0.5);
+      });
+      const [flashIndex, setFlashIndex] = useState(() => {
+        const saved = localStorage.getItem('flashIndex');
+        return saved ? parseInt(saved, 10) : 0;
+      });
+      const [isFlipped, setIsFlipped] = useState(false);
+      const [seenWords, setSeenWords] = useState(() => {
+        const saved = localStorage.getItem('seenWords');
+        if (saved) {
+          try { return new Set(JSON.parse(saved)); } catch (e) {}
+        }
+        return new Set();
+      });
+      const [confetti, setConfetti] = useState([]);
+      const [sessionCount, setSessionCount] = useState(() => {
+        const saved = localStorage.getItem('sessionCount');
+        return saved ? parseInt(saved, 10) : 0;
+      });
+      const [showMilestone, setShowMilestone] = useState(false);
+      const [reviewWords, setReviewWords] = useState(() => {
+        const saved = localStorage.getItem('reviewWords');
+        if (saved) {
+          try { return new Set(JSON.parse(saved)); } catch (e) {}
+        }
+        return new Set();
+      });
+      const [showReviewModal, setShowReviewModal] = useState(false);
+      const [isReviewMode, setIsReviewMode] = useState(() => {
+        const saved = localStorage.getItem('isReviewMode');
+        return saved ? JSON.parse(saved) : false;
+      });
+      const [mainState, setMainState] = useState(() => {
+        const saved = localStorage.getItem('mainState');
+        if (saved) {
+          try { return JSON.parse(saved); } catch (e) {}
+        }
+        return null;
+      });
+
+      useEffect(() => {
+        localStorage.setItem('flashOrder', JSON.stringify(flashOrder));
+        localStorage.setItem('flashIndex', flashIndex.toString());
+        localStorage.setItem('sessionCount', sessionCount.toString());
+        localStorage.setItem('seenWords', JSON.stringify(Array.from(seenWords)));
+        localStorage.setItem('reviewWords', JSON.stringify(Array.from(reviewWords)));
+        localStorage.setItem('isReviewMode', JSON.stringify(isReviewMode));
+        if (mainState) {
+          localStorage.setItem('mainState', JSON.stringify(mainState));
+        } else {
+          localStorage.removeItem('mainState');
+        }
+      }, [flashOrder, flashIndex, sessionCount, seenWords, reviewWords, isReviewMode, mainState]);
+      
+      const audioRef = useRef(null);
+      const milestoneAudioRef = useRef(null);
+
+      useEffect(() => {
+        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+        milestoneAudioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
+      }, []);
+
+      const playPing = () => {
+        if (audioRef.current) {
+          const sound = audioRef.current.cloneNode(true);
+          sound.play().catch(() => {});
+        }
+      };
+
+      const playMilestone = () => {
+        if (milestoneAudioRef.current) {
+          const sound = milestoneAudioRef.current.cloneNode(true);
+          sound.play().catch(() => {});
+        }
+      };
+
+      const launchConfetti = useCallback((count = 30) => {
+        const newConfetti = Array.from({ length: count }).map((_, i) => ({
+          id: `${Date.now()}-${Math.random()}-${i}`,
+          style: {
+            left: `${Math.random() * 100}vw`,
+            top: '0',
+            background: COLORS[Math.floor(Math.random() * COLORS.length)],
+            borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+            animationDuration: `${0.8 + Math.random() * 0.8}s`,
+            animationDelay: `${Math.random() * 0.3}s`,
+          },
+        }));
+        setConfetti((prev) => [...prev, ...newConfetti]);
+        setTimeout(() => {
+          setConfetti((prev) => prev.filter((c) => !newConfetti.find((nc) => nc.id === c.id)));
+        }, 2000);
+      }, []);
+
+      const currentWord = flashOrder[flashIndex];
+
+      useEffect(() => {
+        setSeenWords((prev) => {
+          const next = new Set(prev);
+          next.add(currentWord);
+          return next;
+        });
+      }, [currentWord]);
+
+      useEffect(() => {
+        if (seenWords.size === flashOrder.length && seenWords.size > 0) {
+          launchConfetti(50);
+        }
+      }, [seenWords.size, flashOrder.length, launchConfetti]);
+
+      const handleFlip = () => setIsFlipped(!isFlipped);
+
+      const checkMilestone = (newCount) => {
+        if (newCount >= 15) {
+          setShowMilestone(true);
+          playMilestone();
+          launchConfetti(40);
+          return 0;
+        }
+        return newCount;
+      };
+
+      const handleNext = () => {
+        playPing();
+        setIsFlipped(false);
+        setFlashIndex((prev) => (prev + 1) % flashOrder.length);
+        if (!isReviewMode) {
+          setSessionCount(prev => checkMilestone(prev + 1));
+        }
+      };
+
+      const handlePrev = () => {
+        playPing();
+        setIsFlipped(false);
+        setFlashIndex((prev) => (prev - 1 + flashOrder.length) % flashOrder.length);
+      };
+
+      const handleNeedsReview = () => {
+        setReviewWords(prev => {
+          const next = new Set(prev);
+          next.add(currentWord);
+          return next;
+        });
+        handleNext();
+      };
+
+      const handleCorrect = () => {
+        handleNext();
+      };
+
+      const startReview = () => {
+        if (reviewWords.size === 0) return;
+        
+        setMainState({
+          order: flashOrder,
+          index: flashIndex,
+          seen: Array.from(seenWords),
+          session: sessionCount
+        });
+
+        const newOrder = Array.from(reviewWords);
+        setFlashOrder(newOrder);
+        setFlashIndex(0);
+        setSeenWords(new Set([newOrder[0]]));
+        setIsReviewMode(true);
+        setShowReviewModal(false);
+        setIsFlipped(false);
+        setSessionCount(0);
+      };
+
+      const exitReview = () => {
+        if (mainState) {
+          setFlashOrder(mainState.order);
+          setFlashIndex(mainState.index);
+          setSeenWords(new Set(mainState.seen));
+          setSessionCount(mainState.session);
+          setMainState(null);
+        } else {
+          setFlashOrder([...WORDS]);
+          setFlashIndex(0);
+          setSeenWords(new Set([WORDS[0]]));
+          setSessionCount(0);
+        }
+        setIsReviewMode(false);
+        setIsFlipped(false);
+      };
+
+      const removeReviewWord = (wordToRemove) => {
+        setReviewWords(prev => {
+          const next = new Set(prev);
+          next.delete(wordToRemove);
+          return next;
+        });
+        
+        if (isReviewMode) {
+          setFlashOrder(prev => {
+            const nextOrder = prev.filter(w => w !== wordToRemove);
+            if (nextOrder.length === 0) {
+              setTimeout(exitReview, 0);
+              return prev;
+            }
+            return nextOrder;
+          });
+          setFlashIndex(0);
+        }
+      };
+
+      const handleShuffle = () => {
+        const source = isReviewMode ? Array.from(reviewWords) : [...WORDS];
+        if (source.length === 0) return;
+        const shuffled = [...source].sort(() => Math.random() - 0.5);
+        setFlashOrder(shuffled);
+        setFlashIndex(0);
+        setSeenWords(new Set([shuffled[0]]));
+        setIsFlipped(false);
+        setSessionCount(0);
+      };
+
+      const handleSortAZ = () => {
+        const source = isReviewMode ? Array.from(reviewWords) : [...WORDS];
+        if (source.length === 0) return;
+        const sorted = [...source].sort((a, b) => a.localeCompare(b));
+        setFlashOrder(sorted);
+        setFlashIndex(0);
+        setSeenWords(new Set([sorted[0]]));
+        setIsFlipped(false);
+        setSessionCount(0);
+      };
+
+      const jumpTo = (index) => {
+        playPing();
+        setFlashIndex(index);
+        setIsFlipped(false);
+      };
+
+      const progressPct = Math.round((seenWords.size / flashOrder.length) * 100);
+
+      return (
+        <div className="bg-gradients min-h-screen font-rounded">
+          <div id="app" className="relative z-10 max-w-[600px] mx-auto px-4 py-10">
+            <header className="text-center mb-6">
+              <h1 className="text-5xl md:text-6xl text-c1 drop-shadow-[0_2px_8px_rgba(255,107,157,0.3)] tracking-wider font-bold">
+                ❤️ Heart Words
+              </h1>
+              <p className="text-[#888] text-sm font-bold mt-1">{WORDS.length} sight words to learn!</p>
+              <button 
+                onClick={() => setShowReviewModal(true)}
+                className="mt-3 inline-flex items-center gap-1.5 px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full font-bold text-sm hover:bg-orange-200 transition-colors"
+              >
+                📝 復習リスト ({reviewWords.size})
+              </button>
+            </header>
+
+            {isReviewMode && (
+              <div className="bg-orange-100 text-orange-800 px-4 py-3 rounded-2xl mb-5 flex justify-between items-center font-bold text-sm shadow-sm border border-orange-200">
+                <span className="flex items-center gap-2">🔥 復習モード中 ({flashOrder.length}語)</span>
+                <button onClick={exitReview} className="text-orange-600 underline hover:text-orange-800">すべてに戻る</button>
+              </div>
+            )}
+
+            <div className="progress-wrap mb-5">
+              <div className="flex justify-between font-extrabold text-sm text-[#999] mb-1.5">
+                <span>Word {flashIndex + 1} of {flashOrder.length}</span>
+                <span>{progressPct}% seen</span>
+              </div>
+              <div className="h-3 bg-[#E8E8F0] rounded-full overflow-hidden">
+                <div 
+                  className="h-full rounded-full bg-c1 transition-[width] duration-500 ease-[cubic-bezier(.34,1.56,.64,1)]"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+              {!isReviewMode && (
+                <div className="flex justify-center mt-2 gap-1">
+                  {Array.from({ length: 15 }).map((_, i) => (
+                    <div 
+                      key={i} 
+                      className={`w-2 h-2 rounded-full ${i < sessionCount ? 'bg-c4' : 'bg-gray-200'}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flashcard-scene mb-6">
+              <div 
+                className={`flashcard ${isFlipped ? 'flipped' : ''}`}
+                onClick={handleFlip}
+              >
+                <div className="card-face card-front">
+                  <div className="text-6xl md:text-8xl text-[#333] tracking-widest leading-none select-none font-bold">
+                    {currentWord}
+                  </div>
+                  <div className="text-xs text-[#bbb] font-bold mt-3">👆 Tap to flip!</div>
+                </div>
+                <div className="card-face card-back">
+                  <div className="text-4xl mb-2">{EMOJIS[currentWord] || '⭐'}</div>
+                  <div className="text-6xl md:text-8xl text-[#444] tracking-widest leading-none select-none font-bold">
+                    {currentWord}
+                  </div>
+                  <div className="text-[#666] text-base font-bold mt-3 text-center px-4">
+                    {SENTENCES[currentWord] || ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 items-center mb-6">
+              <div className="flex gap-3 w-full max-w-[340px]">
+                <button 
+                  className="flex-1 py-4 border-none rounded-2xl cursor-pointer font-bold text-xl text-white transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 shadow-md bg-orange-400"
+                  onClick={handleNeedsReview}
+                >
+                  よめない 💦
+                </button>
+                <button 
+                  className="flex-1 py-4 border-none rounded-2xl cursor-pointer font-bold text-xl text-white transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 shadow-md bg-green-400"
+                  onClick={handleCorrect}
+                >
+                  できた！ ✨
+                </button>
+              </div>
+              
+              <div className="flex gap-3 justify-center w-full">
+                <button 
+                  className="flex-1 py-3.5 border-none rounded-2xl cursor-pointer font-bold text-lg text-white transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 shadow-md bg-sky-300"
+                  onClick={handlePrev}
+                >
+                  ⬅️ Prev
+                </button>
+                <button 
+                  className="flex-1 py-3.5 border-none rounded-2xl cursor-pointer font-bold text-lg text-white transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 shadow-md bg-violet-300"
+                  onClick={handleFlip}
+                >
+                  🔄 Flip
+                </button>
+                <button 
+                  className="flex-1 py-3.5 border-none rounded-2xl cursor-pointer font-bold text-lg text-white transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 shadow-md bg-pink-300"
+                  onClick={handleNext}
+                >
+                  Next ➡️
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mb-3.5">
+              <button 
+                className="flex-1 px-4 py-3.5 border-none rounded-2xl cursor-pointer font-bold text-lg text-white transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 shadow-md bg-orange-300"
+                onClick={handleShuffle}
+              >
+                🔀 Shuffle All!
+              </button>
+              <button 
+                className="flex-1 px-4 py-3.5 border-none rounded-2xl cursor-pointer font-bold text-lg text-white transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 shadow-md bg-blue-400"
+                onClick={handleSortAZ}
+              >
+                🔤 A-Z
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 justify-center mt-1">
+              {flashOrder.map((w, i) => (
+                <div 
+                  key={`${w}-${i}`}
+                  className={`w-2.5 h-2.5 rounded-full transition-all cursor-pointer ${
+                    i === flashIndex ? 'bg-c1 scale-140' : seenWords.has(w) ? 'bg-c3' : 'bg-[#E8E8F0]'
+                  }`}
+                  onClick={() => jumpTo(i)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {confetti.map((c) => (
+            <div key={c.id} className="confetti-piece" style={c.style} />
+          ))}
+
+          {showReviewModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+              <div className="bg-white rounded-[30px] p-6 shadow-2xl max-w-sm w-full animate-in zoom-in duration-300">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">復習リスト</h2>
+                {reviewWords.size === 0 ? (
+                  <p className="text-center text-gray-500 mb-6 font-bold">復習する単語はありません！🎉<br/>よくがんばりました！</p>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap gap-2 mb-6 max-h-[40vh] overflow-y-auto p-2">
+                      {Array.from(reviewWords).map((w) => (
+                        <span key={w} className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 rounded-full font-bold text-sm">
+                          {w}
+                          <button 
+                            onClick={() => removeReviewWord(w)}
+                            className="w-5 h-5 rounded-full bg-orange-200 hover:bg-orange-400 hover:text-white flex items-center justify-center text-xs transition-colors"
+                            title="リストから削除"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <button 
+                      className="w-full py-3 bg-orange-400 text-white rounded-xl font-bold text-lg shadow-md hover:scale-105 transition-transform mb-3"
+                      onClick={startReview}
+                    >
+                      復習モードをはじめる 🚀
+                    </button>
+                  </>
+                )}
+                <button 
+                  className="w-full py-3 bg-gray-200 text-gray-700 rounded-xl font-bold text-lg hover:bg-gray-300 transition-colors"
+                  onClick={() => setShowReviewModal(false)}
+                >
+                  とじる
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showMilestone && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+              <div className="bg-white rounded-[40px] p-10 text-center shadow-2xl max-w-sm w-full border-8 border-c4 animate-in zoom-in duration-300">
+                <div className="text-7xl mb-4">🥳</div>
+                <h2 className="text-4xl font-bold text-c4 mb-2">Good Job!</h2>
+                <p className="text-gray-600 font-bold mb-8">15個もがんばったね！<br/>すごいよ！</p>
+                <button 
+                  className="w-full py-4 bg-c4 text-white rounded-2xl font-bold text-xl shadow-lg hover:scale-105 transition-transform"
+                  onClick={() => setShowMilestone(false)}
+                >
+                  つぎへすすむ 🚀
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
